@@ -53,7 +53,26 @@ export default function ApplicationStudio() {
   const [sectionName, setSectionName] = useState(packets[0].sections[0].name);
   const [values, setValues] = useState<Record<string,string>>({});
   const [toast, setToast] = useState("");
-  const packet = packets.find(p => p.id === packetId)!;
+  const [stateFilter, setStateFilter] = useState("All states");
+  const [typeFilter, setTypeFilter] = useState("All license types");
+  const [providerFilter, setProviderFilter] = useState("All providers");
+  const [statusFilter, setStatusFilter] = useState("All statuses");
+
+  const states = [...new Set(packets.map(p => p.state))];
+  const licenseTypes = [...new Set(packets.map(p => p.type))];
+  const providers = [...new Set(packets.map(p => p.provider))];
+  const filteredPackets = useMemo(() => packets.filter(p => {
+    const fields = p.sections.flatMap(s => s.fields);
+    const matchesStatus = statusFilter === "All statuses"
+      || (statusFilter === "Missing information" && fields.some(f => f.status === "missing"))
+      || (statusFilter === "Needs confirmation" && fields.some(f => f.status === "confirm"))
+      || (statusFilter === "Review ready" && fields.every(f => f.status === "verified"));
+    return (stateFilter === "All states" || p.state === stateFilter)
+      && (typeFilter === "All license types" || p.type === typeFilter)
+      && (providerFilter === "All providers" || p.provider === providerFilter)
+      && matchesStatus;
+  }), [stateFilter, typeFilter, providerFilter, statusFilter]);
+  const packet = filteredPackets.find(p => p.id === packetId) ?? filteredPackets[0] ?? packets[0];
   const section = packet.sections.find(s => s.name === sectionName) ?? packet.sections[0];
   const allFields = packet.sections.flatMap(s => s.fields);
   const complete = allFields.filter(f => f.status === "verified").length;
@@ -63,6 +82,13 @@ export default function ApplicationStudio() {
   const selectPacket = (id:string) => {
     const next = packets.find(p => p.id === id)!;
     setPacketId(id); setSectionName(next.sections[0].name); setToast("");
+  };
+
+  const clearFilters = () => {
+    setStateFilter("All states");
+    setTypeFilter("All license types");
+    setProviderFilter("All providers");
+    setStatusFilter("All statuses");
   };
 
   const sectionCounts = useMemo(() => packet.sections.map(s => ({
@@ -78,8 +104,17 @@ export default function ApplicationStudio() {
 
       {toast && <div className="studio-toast" role="status">{toast}<button onClick={() => setToast("")}>×</button></div>}
 
+      <div className="studio-filters" aria-label="Filter application packets">
+        <div className="filter-heading"><span>Filter packets</span><strong>{filteredPackets.length} of {packets.length}</strong></div>
+        <label><span>State</span><select value={stateFilter} onChange={e => setStateFilter(e.target.value)}><option>All states</option>{states.map(state => <option key={state}>{state}</option>)}</select></label>
+        <label><span>License type</span><select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}><option>All license types</option>{licenseTypes.map(type => <option key={type}>{type}</option>)}</select></label>
+        <label><span>Provider</span><select value={providerFilter} onChange={e => setProviderFilter(e.target.value)}><option>All providers</option>{providers.map(provider => <option key={provider}>{provider}</option>)}</select></label>
+        <label><span>Review status</span><select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option>All statuses</option><option>Missing information</option><option>Needs confirmation</option><option>Review ready</option></select></label>
+        <button className="clear-filters" type="button" onClick={clearFilters} disabled={stateFilter === "All states" && typeFilter === "All license types" && providerFilter === "All providers" && statusFilter === "All statuses"}>Clear</button>
+      </div>
+
       <div className="packet-queue" aria-label="Application packets">
-        {packets.map(p => {
+        {filteredPackets.map(p => {
           const fields=p.sections.flatMap(s=>s.fields); const done=fields.filter(f=>f.status==="verified").length;
           return <button key={p.id} className={p.id===packet.id?"packet-card active":"packet-card"} onClick={()=>selectPacket(p.id)}>
             <span className="packet-state">{p.state.slice(0,2).toUpperCase()}</span>
@@ -89,7 +124,7 @@ export default function ApplicationStudio() {
         })}
       </div>
 
-      <div className="studio-workbench">
+      {filteredPackets.length === 0 ? <div className="filter-empty"><strong>No packets match these filters</strong><p>Clear one or more filters to return to the application queue.</p><button type="button" onClick={clearFilters}>Clear all filters</button></div> : <div className="studio-workbench">
         <aside className="packet-rail">
           <div className="packet-id"><small>Packet</small><strong>{packet.id}</strong><span>{packet.board}</span></div>
           <div className="completion"><div><strong>{percent}%</strong><small>review ready</small></div><span><i style={{width:`${percent}%`}} /></span></div>
@@ -122,7 +157,7 @@ export default function ApplicationStudio() {
           <hr/><h4>Submission boundary</h4><p>This workspace prepares a review packet. A licensing specialist must verify attestations, sign, pay, and submit through the official state portal.</p>
           <button onClick={()=>setToast("Review worksheet prepared. No sensitive attachments were included.")}>Prepare review worksheet</button>
         </aside>
-      </div>
+      </div>}
     </section>
   );
 }
