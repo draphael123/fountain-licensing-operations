@@ -10,6 +10,9 @@ export async function login(_: { error: string }, formData: FormData) {
   const session = createSessionValue();
   if (!session || !validCredentials(username, password)) return { error: "The username or password is incorrect." };
 
+  const requestedDestination = String(formData.get("destination") ?? "/");
+  const destination = requestedDestination === "/application-studio" ? requestedDestination : "/";
+
   (await cookies()).set(SESSION_COOKIE, session, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -17,5 +20,5 @@ export async function login(_: { error: string }, formData: FormData) {
     path: "/",
     maxAge: 60 * 60 * 12,
   });
-  redirect("/");
+  redirect(destination);
 }
