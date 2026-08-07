@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import StudioOperations, { StudioNavigation, type StudioView } from "./studio-operations";
 
 type FieldStatus = "verified" | "confirm" | "missing";
 type Field = { id: string; label: string; value: string; status: FieldStatus; source: string; sensitive?: boolean };
@@ -80,6 +81,7 @@ const westVirginiaCrossCheck: Packet = {
 const applicationPackets = [westVirginiaCrossCheck, ...packets.slice(1)];
 
 export default function ApplicationStudio() {
+  const [view, setView] = useState<StudioView>("crosscheck");
   const [packetId, setPacketId] = useState(applicationPackets[0].id);
   const [sectionName, setSectionName] = useState(applicationPackets[0].sections[0].name);
   const [values, setValues] = useState<Record<string,string>>({});
@@ -130,11 +132,14 @@ export default function ApplicationStudio() {
     <section className="studio-page">
       <div className="studio-heading">
         <div><p className="eyebrow">Application Studio</p><h1>What does the state require—and what do we have?</h1><p>Cross-check official requirements against approved provider information before work begins.</p></div>
-        <button className="new-packet" onClick={() => setToast("New packet setup will connect to the approved provider profile.")}>＋ New packet</button>
+        <button className="new-packet" onClick={() => setView("intake")}>＋ New packet</button>
       </div>
 
       {toast && <div className="studio-toast" role="status">{toast}<button onClick={() => setToast("")}>×</button></div>}
 
+      <StudioNavigation view={view} onChange={setView} />
+
+      {view === "crosscheck" ? <>
       <div className="studio-filters" aria-label="Filter application packets">
         <div className="filter-heading"><span>Filter packets</span><strong>{filteredPackets.length} of {applicationPackets.length}</strong></div>
         <label><span>State</span><select value={stateFilter} onChange={e => setStateFilter(e.target.value)}><option>All states</option>{states.map(state => <option key={state}>{state}</option>)}</select></label>
@@ -195,6 +200,7 @@ export default function ApplicationStudio() {
           <button onClick={()=>setToast("Review worksheet prepared. No sensitive attachments were included.")}>Prepare review worksheet</button>
         </aside>
       </div>}
+      </> : <StudioOperations view={view} notify={setToast} />}
     </section>
   );
 }
