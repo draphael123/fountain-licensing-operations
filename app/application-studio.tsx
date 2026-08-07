@@ -46,11 +46,42 @@ const packets: Packet[] = [
   ]},
 ];
 
-const labels: Record<FieldStatus, string> = { verified:"Verified", confirm:"Confirm", missing:"Missing" };
+const labels: Record<FieldStatus, string> = { verified:"Available", confirm:"Action required", missing:"Missing" };
+
+const westVirginiaCrossCheck: Packet = {
+  id: "WV-MD-INITIAL", state: "West Virginia", board: "Board of Medicine", type: "Initial physician license", provider: "Provider D", due: "Sep 18", sections: [
+    { name: "Eligibility", fields: [
+      { id:"medical-school", label:"Approved medical school graduation", value:"Matched: MD degree and school verification", status:"verified", source:"Sanitized credential profile · verified Jul 22" },
+      { id:"gme", label:"Required graduate medical education", value:"Matched: ACGME training exceeds minimum", status:"verified", source:"Sanitized training record · verified Jul 29" },
+      { id:"exam", label:"USMLE examination sequence", value:"Matched: Steps 1–3 within required sequence", status:"verified", source:"Sanitized exam record · verified Jul 22" },
+      { id:"standing", label:"License standing and eligibility review", value:"Matched: no unresolved suspension or revocation flag", status:"verified", source:"Sanitized license inventory · reviewed Aug 6" },
+    ]},
+    { name: "Applications & attestations", fields: [
+      { id:"ua", label:"FSMB Uniform Application core data", value:"Available: reusable profile mapped", status:"verified", source:"Approved provider profile · Aug 6" },
+      { id:"chronology", label:"Complete activity chronology since medical school", value:"", status:"missing", source:"Three-month gap requires explanation" },
+      { id:"addendum", label:"West Virginia Online Addendum", value:"Provider review required", status:"confirm", source:"Professional Practice, Character and Fitness responses" },
+      { id:"fee", label:"Initial application fee", value:"$400 — licensing specialist action", status:"confirm", source:"Payment is never completed automatically" },
+      { id:"photo-affidavit", label:"Original notarized photo affidavit and release", value:"", status:"missing", source:"Original must be mailed; email or fax not accepted" },
+    ]},
+    { name: "External checks", fields: [
+      { id:"fingerprints", label:"WV-specific fingerprint background check", value:"", status:"missing", source:"New IdentoGo check required; other checks cannot be reused" },
+      { id:"npdb", label:"NPDB self-query generated within 30 days", value:"", status:"missing", source:"Provider must initiate a current self-query" },
+      { id:"ama", label:"AMA Physician Profile sent to the Board", value:"Request not yet confirmed", status:"confirm", source:"Third-party delivery must be verified" },
+      { id:"licenses", label:"Other state license inventory", value:"Matched: license list available for Board screening", status:"verified", source:"Sanitized license inventory · Aug 6" },
+    ]},
+    { name: "Credential evidence", fields: [
+      { id:"identity", label:"Identity document or FCVS identity verification", value:"Restricted — available in secure vault", status:"verified", source:"Secure credential vault · access logged", sensitive:true },
+      { id:"diploma", label:"Medical school diploma or FCVS verification", value:"Matched: diploma copy available", status:"verified", source:"Sanitized document index · Jul 22" },
+      { id:"training", label:"Training verification and completion evidence", value:"Matched: program verification and certificate", status:"verified", source:"Sanitized document index · Jul 29" },
+    ]},
+  ],
+};
+
+const applicationPackets = [westVirginiaCrossCheck, ...packets.slice(1)];
 
 export default function ApplicationStudio() {
-  const [packetId, setPacketId] = useState(packets[0].id);
-  const [sectionName, setSectionName] = useState(packets[0].sections[0].name);
+  const [packetId, setPacketId] = useState(applicationPackets[0].id);
+  const [sectionName, setSectionName] = useState(applicationPackets[0].sections[0].name);
   const [values, setValues] = useState<Record<string,string>>({});
   const [toast, setToast] = useState("");
   const [stateFilter, setStateFilter] = useState("All states");
@@ -58,10 +89,10 @@ export default function ApplicationStudio() {
   const [providerFilter, setProviderFilter] = useState("All providers");
   const [statusFilter, setStatusFilter] = useState("All statuses");
 
-  const states = [...new Set(packets.map(p => p.state))];
-  const licenseTypes = [...new Set(packets.map(p => p.type))];
-  const providers = [...new Set(packets.map(p => p.provider))];
-  const filteredPackets = useMemo(() => packets.filter(p => {
+  const states = [...new Set(applicationPackets.map(p => p.state))];
+  const licenseTypes = [...new Set(applicationPackets.map(p => p.type))];
+  const providers = [...new Set(applicationPackets.map(p => p.provider))];
+  const filteredPackets = useMemo(() => applicationPackets.filter(p => {
     const fields = p.sections.flatMap(s => s.fields);
     const matchesStatus = statusFilter === "All statuses"
       || (statusFilter === "Missing information" && fields.some(f => f.status === "missing"))
@@ -72,7 +103,7 @@ export default function ApplicationStudio() {
       && (providerFilter === "All providers" || p.provider === providerFilter)
       && matchesStatus;
   }), [stateFilter, typeFilter, providerFilter, statusFilter]);
-  const packet = filteredPackets.find(p => p.id === packetId) ?? filteredPackets[0] ?? packets[0];
+  const packet = filteredPackets.find(p => p.id === packetId) ?? filteredPackets[0] ?? applicationPackets[0];
   const section = packet.sections.find(s => s.name === sectionName) ?? packet.sections[0];
   const allFields = packet.sections.flatMap(s => s.fields);
   const complete = allFields.filter(f => f.status === "verified").length;
@@ -80,7 +111,7 @@ export default function ApplicationStudio() {
   const issues = allFields.filter(f => f.status !== "verified").length;
 
   const selectPacket = (id:string) => {
-    const next = packets.find(p => p.id === id)!;
+    const next = applicationPackets.find(p => p.id === id)!;
     setPacketId(id); setSectionName(next.sections[0].name); setToast("");
   };
 
@@ -98,14 +129,14 @@ export default function ApplicationStudio() {
   return (
     <section className="studio-page">
       <div className="studio-heading">
-        <div><p className="eyebrow">Application Studio</p><h1>Prepare the packet. Review the exceptions.</h1><p>Reusable answers, state-specific requirements, and human approval in one controlled workspace.</p></div>
+        <div><p className="eyebrow">Application Studio</p><h1>What does the state require—and what do we have?</h1><p>Cross-check official requirements against approved provider information before work begins.</p></div>
         <button className="new-packet" onClick={() => setToast("New packet setup will connect to the approved provider profile.")}>＋ New packet</button>
       </div>
 
       {toast && <div className="studio-toast" role="status">{toast}<button onClick={() => setToast("")}>×</button></div>}
 
       <div className="studio-filters" aria-label="Filter application packets">
-        <div className="filter-heading"><span>Filter packets</span><strong>{filteredPackets.length} of {packets.length}</strong></div>
+        <div className="filter-heading"><span>Filter packets</span><strong>{filteredPackets.length} of {applicationPackets.length}</strong></div>
         <label><span>State</span><select value={stateFilter} onChange={e => setStateFilter(e.target.value)}><option>All states</option>{states.map(state => <option key={state}>{state}</option>)}</select></label>
         <label><span>License type</span><select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}><option>All license types</option>{licenseTypes.map(type => <option key={type}>{type}</option>)}</select></label>
         <label><span>Provider</span><select value={providerFilter} onChange={e => setProviderFilter(e.target.value)}><option>All providers</option>{providers.map(provider => <option key={provider}>{provider}</option>)}</select></label>
@@ -124,6 +155,12 @@ export default function ApplicationStudio() {
         })}
       </div>
 
+      {filteredPackets.length > 0 && packet.id === "WV-MD-INITIAL" && <div className="crosscheck-source">
+        <div><span className="source-badge">Real requirement set</span><strong>West Virginia initial physician license</strong><p>Requirements mapped from the Board of Medicine physician application instructions. Provider matches use sanitized demonstration data.</p></div>
+        <div className="crosscheck-totals"><span><b>{complete}</b> available</span><span><b>{allFields.filter(f=>f.status==="confirm").length}</b> actions</span><span><b>{allFields.filter(f=>f.status==="missing").length}</b> missing</span></div>
+        <a href="https://www.fsmb.org/siteassets/ua/states/049/instructions.pdf" target="_blank" rel="noreferrer">Open board instructions ↗</a>
+      </div>}
+
       {filteredPackets.length === 0 ? <div className="filter-empty"><strong>No packets match these filters</strong><p>Clear one or more filters to return to the application queue.</p><button type="button" onClick={clearFilters}>Clear all filters</button></div> : <div className="studio-workbench">
         <aside className="packet-rail">
           <div className="packet-id"><small>Packet</small><strong>{packet.id}</strong><span>{packet.board}</span></div>
@@ -131,7 +168,7 @@ export default function ApplicationStudio() {
           <div className="rail-label">Application sections</div>
           {sectionCounts.map(s => <button key={s.name} className={section.name===s.name?"section-link active":"section-link"} onClick={()=>setSectionName(s.name)}>
             <span className={s.done===s.total?"section-check done":"section-check"}>{s.done===s.total?"✓":s.total-s.done}</span>
-            <span><strong>{s.name}</strong><small>{s.done} of {s.total} verified</small></span>
+            <span><strong>{s.name}</strong><small>{s.done} of {s.total} available</small></span>
           </button>)}
           <div className="safety-note"><strong>Secure handling</strong><p>Sensitive values stay masked. Personal attestations are never completed automatically.</p></div>
         </aside>
@@ -151,7 +188,7 @@ export default function ApplicationStudio() {
 
         <aside className="review-panel">
           <p className="eyebrow">Review summary</p><h3>{issues ? `${issues} items need attention` : "Ready for review"}</h3>
-          <div className="review-stat"><span className="verified"/><div><strong>{complete} verified</strong><small>Mapped from approved sources</small></div></div>
+          <div className="review-stat"><span className="verified"/><div><strong>{complete} available</strong><small>Matched to approved sources</small></div></div>
           <div className="review-stat"><span className="confirm"/><div><strong>{allFields.filter(f=>f.status==="confirm").length} confirmations</strong><small>Provider or specialist response</small></div></div>
           <div className="review-stat"><span className="missing"/><div><strong>{allFields.filter(f=>f.status==="missing").length} missing</strong><small>Required before submission</small></div></div>
           <hr/><h4>Submission boundary</h4><p>This workspace prepares a review packet. A licensing specialist must verify attestations, sign, pay, and submit through the official state portal.</p>
