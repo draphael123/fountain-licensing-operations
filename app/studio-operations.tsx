@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 
-export type StudioView = "queue" | "crosscheck" | "intake" | "readiness" | "vault" | "requests" | "audit";
+export type StudioView = "queue" | "crosscheck" | "deficiencies" | "intake" | "readiness" | "vault" | "requests" | "audit";
 
 const tabs: { id: StudioView; label: string; count?: string }[] = [
   { id:"queue", label:"Work queue", count:"9" },
   { id:"crosscheck", label:"Cross-check", count:"3" },
+  { id:"deficiencies", label:"Deficiencies", count:"2" },
   { id:"intake", label:"New application" },
   { id:"readiness", label:"Readiness matrix" },
   { id:"vault", label:"Provider vault" },
@@ -47,6 +48,8 @@ export default function StudioOperations({ view, notify }: { view: Exclude<Studi
   const [state, setState] = useState("West Virginia");
   const [pathway, setPathway] = useState("Direct initial licensure");
   const [requestStates, setRequestStates] = useState(["Open","Waiting","Open","Received","Open"]);
+  const [deficiencyCase, setDeficiencyCase] = useState("WV-042");
+  const [responseStates, setResponseStates] = useState(["In progress","Waiting","Ready"]);
 
   if (view === "queue") return <section className="module-page queue-page">
     <ModuleHeader eyebrow="Operations home" title="What is stopping submission?" copy="Work the highest-impact exceptions first, then move complete packets into licensing review." />
@@ -58,6 +61,31 @@ export default function StudioOperations({ view, notify }: { view: Exclude<Studi
       ["Medium","WV","AMA profile delivery unconfirmed","Provider D","Licensing Ops","Waiting"],
       ["Medium","CO","PDMP attestation needs review","Provider A","Provider","Due Aug 18"],
     ].map((r,i)=><button className="exception-row" key={r[2]} onClick={()=>notify(`${r[2]} opened in the action drawer.`)}><span className={`queue-priority ${r[0].toLowerCase()}`}>{r[0]}</span><span className="queue-state">{r[1]}</span><div><strong>{r[2]}</strong><p>{r[3]} · {r[4]}</p></div><time>{r[5]}</time><span>→</span></button>)}</div><aside className="source-inbox"><p className="eyebrow">Source-update inbox</p><h3>1 requirement set needs review</h3><div className="source-alert"><span>WV</span><div><strong>Physician instructions</strong><p>Source document is beyond the internal review threshold.</p><small>Official link available · reviewed 2022</small></div></div><button onClick={()=>notify("West Virginia source review assigned to Compliance.")}>Assign source review</button><hr/><h4>Recently confirmed</h4><p>Colorado controlled-substance renewal · Aug 4</p><p>Hawaii physician renewal · Aug 2</p></aside></div>
+  </section>;
+
+  if (view === "deficiencies") return <section className="module-page deficiency-page">
+    <ModuleHeader eyebrow="Board response workspace" title="Turn deficiency notices into a complete response" copy="Keep every board request, owner, deadline, response document, and submission event together." />
+    <div className="deficiency-health"><div><span className="board-seal">WV</span><div><small>Selected case</small><strong>Provider D · Initial physician license</strong><p>Board notice received Aug 5 · response due Aug 26</p></div></div><div><span><b>3</b> response items</span><span><b>1</b> ready</span><span><b>2</b> open</span><i><em style={{width:"33%"}}/></i></div></div>
+    <div className="deficiency-workspace">
+      <aside className="notice-list"><div className="notice-heading"><p className="eyebrow">Board notices</p><button onClick={()=>notify("Board correspondence intake opened.")}>＋ Add notice</button></div>{[
+        ["WV-042","West Virginia","3 items","Due Aug 26","active"],
+        ["HI-018","Hawaii","1 item","Due Sep 9",""],
+      ].map(n=><button key={n[0]} className={deficiencyCase===n[0]?"notice-card active":"notice-card"} onClick={()=>setDeficiencyCase(n[0])}><span>{n[1].slice(0,2).toUpperCase()}</span><div><strong>{n[1]} deficiency notice</strong><p>{n[0]} · {n[2]}</p><small>{n[3]}</small></div></button>)}<div className="notice-safe"><strong>Correspondence boundary</strong><p>Board emails and documents remain sanitized in this prototype.</p></div></aside>
+      <main className="response-center"><div className="response-head"><div><p className="eyebrow">Parsed response plan</p><h3>{deficiencyCase === "WV-042" ? "Three items requested by the Board" : "One item requested by the Board"}</h3></div><button onClick={()=>notify("Sanitized board notice opened.")}>View original notice</button></div>{deficiencyCase === "WV-042" ? [
+        ["Complete activity chronology","Explain the July–September 2021 gap and provide exact dates.","Provider D","Aug 12","Internal","Possible duplicate: request already open"],
+        ["Submit notarized photo affidavit","Mail the original signed and notarized form to the Board.","Provider D","Aug 15","Provider-only","Original document required"],
+        ["Confirm AMA Profile delivery","Verify that the AMA report was transmitted directly to WVBOM.","Licensing Ops","Aug 14","Public requirement","Third-party confirmation"],
+      ].map((item,i)=><article className="response-item" key={item[0]}><header><span>{String(i+1).padStart(2,"0")}</span><div><strong>{item[0]}</strong><p>{item[1]}</p></div><select value={responseStates[i]} onChange={e=>setResponseStates(s=>s.map((v,x)=>x===i?e.target.value:v))}><option>Waiting</option><option>In progress</option><option>Ready</option><option>Submitted</option></select></header><div className="response-meta"><span><small>Owner</small>{item[2]}</span><span><small>Due</small>{item[3]}</span><span><small>Privacy</small>{item[4]}</span><span><small>Evidence</small>{item[5]}</span></div><footer><button onClick={()=>notify(`${item[0]} response evidence attached.`)}>Attach evidence</button><button onClick={()=>notify(`${item[0]} response note drafted.`)}>Draft response note</button></footer></article>) : <article className="response-item"><header><span>01</span><div><strong>Provide updated CME evidence</strong><p>Submit the current completion summary for the renewal period.</p></div><select><option>Waiting</option><option>Ready</option></select></header><div className="response-meta"><span><small>Owner</small>Provider F</span><span><small>Due</small>Sep 2</span><span><small>Privacy</small>Internal</span><span><small>Evidence</small>CME summary requested</span></div></article>}
+        <div className="response-submit"><div><strong>{responseStates.filter(s=>s==="Ready"||s==="Submitted").length} of 3 response items ready</strong><p>All items require licensing review before the response can be sent.</p></div><button disabled={!responseStates.every(s=>s==="Ready"||s==="Submitted")} onClick={()=>notify("Deficiency response package prepared for licensing review.")}>Prepare response package</button></div>
+      </main>
+      <aside className="case-evidence"><p className="eyebrow">Case activity</p><h3>Correspondence & timeline</h3>{[
+        ["Aug 5","Board notice received","3 deficiency items identified"],
+        ["Aug 6","Notice parsed","Owners and due dates assigned"],
+        ["Aug 7","Duplicate detected","Chronology request already existed"],
+        ["Aug 12","Provider response due","Activity explanation"],
+        ["Aug 26","Board deadline","Complete response due"],
+      ].map((e,i)=><div className={`case-event ${i<3?"done":""}`} key={e[1]}><span/><time>{e[0]}</time><div><strong>{e[1]}</strong><p>{e[2]}</p></div></div>)}<hr/><h4>Board correspondence</h4><button className="correspondence" onClick={()=>notify("Deficiency notice preview opened.")}><span>PDF</span><div><strong>Deficiency_notice_0805.pdf</strong><small>Received from board analyst · sanitized</small></div></button><button className="correspondence" onClick={()=>notify("Board email preview opened.")}><span>EML</span><div><strong>Analyst follow-up</strong><small>Received Aug 6 · no attachments</small></div></button></aside>
+    </div>
   </section>;
 
   if (view === "intake") return <section className="module-page">
