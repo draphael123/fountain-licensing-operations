@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ApplicationStudio from "./application-studio";
 
 type Readiness = "Ready" | "Nearly ready" | "Blocked" | "Research needed";
 
@@ -80,7 +81,7 @@ export default function Dashboard() {
   const [selected, setSelected] = useState<StateRecord>(states[1]);
   const [filter, setFilter] = useState("All");
   const [query, setQuery] = useState("");
-  const [panel, setPanel] = useState<"states" | "actions">("states");
+  const [panel, setPanel] = useState<"states" | "actions" | "applications">("states");
 
   const visible = useMemo(() => states.filter((state) =>
     (filter === "All" || state.readiness === filter) &&
@@ -102,6 +103,7 @@ export default function Dashboard() {
           <div className="nav-label">Workspace</div>
           <button className={panel === "states" ? "nav active" : "nav"} onClick={() => setPanel("states")}><span>◫</span> Launch readiness</button>
           <button className={panel === "actions" ? "nav active" : "nav"} onClick={() => setPanel("actions")}><span>✓</span> Action queue <b>{actions.length}</b></button>
+          <button className={panel === "applications" ? "nav active" : "nav"} onClick={() => setPanel("applications")}><span>▤</span> Application Studio <b>3</b></button>
           <div className="nav-label nav-section">Data boundaries</div>
           <div className="privacy-card">
             <span className="shield">◆</span>
@@ -112,7 +114,7 @@ export default function Dashboard() {
         </aside>
 
         <div className="content">
-          {panel === "states" ? (
+          {panel === "applications" ? <ApplicationStudio /> : panel === "states" ? (
             <>
               <div className="page-heading">
                 <div><p className="eyebrow">Launch readiness</p><h1>Where can we launch next?</h1><p>See market readiness, blockers, and the next action—without exposing sensitive provider data.</p></div>
