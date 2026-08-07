@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Manrope, IBM_Plex_Mono } from "next/font/google";
+import { Outfit, Fragment_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 
-const manrope = Manrope({ variable: "--font-body", subsets: ["latin"] });
-const mono = IBM_Plex_Mono({ variable: "--font-mono", subsets: ["latin"], weight: ["400", "500", "600"] });
+const outfit = Outfit({ variable: "--font-body", subsets: ["latin"] });
+const mono = Fragment_Mono({ variable: "--font-mono", subsets: ["latin"], weight: ["400"] });
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
@@ -12,13 +12,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const image = `${protocol}://${host}/og.png`;
   return {
-    title: "Fountain — New States",
-    description: "A private workspace for evaluating new-state launch readiness.",
-    openGraph: { title: "Fountain — New States", description: "Private launch-readiness workspace", images: [image] },
-    twitter: { card: "summary_large_image", title: "Fountain — New States", description: "Private launch-readiness workspace", images: [image] },
+    title: "Fountain — Licensing Operations",
+    description: "A private Fountain workspace for licensing readiness and application preparation.",
+    openGraph: { title: "Fountain — Licensing Operations", description: "Private licensing operations workspace", images: [image] },
+    twitter: { card: "summary_large_image", title: "Fountain — Licensing Operations", description: "Private licensing operations workspace", images: [image] },
   };
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body className={`${manrope.variable} ${mono.variable}`}>{children}</body></html>;
+  return <html lang="en"><body className={`${outfit.variable} ${mono.variable}`}>{children}</body></html>;
 }

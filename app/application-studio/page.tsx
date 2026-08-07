@@ -15,7 +15,9 @@ export default async function ApplicationStudioPage() {
       <header className="studio-topbar">
         <div className="brand">
           <span className="brand-mark">F</span>
-          <span>Application Studio</span>
+          <span className="brand-word">Fountain</span>
+          <span className="brand-divider" />
+          <span className="brand-product">Application Studio</span>
           <span className="prototype">Synthetic prototype</span>
         </div>
         <div className="access">
