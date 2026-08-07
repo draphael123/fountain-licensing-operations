@@ -12,10 +12,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const image = `${protocol}://${host}/og.png`;
   return {
-    title: "Fountain Licensing Operations",
-    description: "A private launch-readiness workspace for licensing operations.",
-    openGraph: { title: "Fountain Licensing Operations", description: "What can we launch next?", images: [image] },
-    twitter: { card: "summary_large_image", title: "Fountain Licensing Operations", description: "What can we launch next?", images: [image] },
+    title: "Fountain — New States",
+    description: "A private workspace for evaluating new-state launch readiness.",
+    openGraph: { title: "Fountain — New States", description: "Private launch-readiness workspace", images: [image] },
+    twitter: { card: "summary_large_image", title: "Fountain — New States", description: "Private launch-readiness workspace", images: [image] },
   };
 }
 
