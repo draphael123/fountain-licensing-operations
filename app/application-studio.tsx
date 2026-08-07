@@ -48,6 +48,8 @@ const packets: Packet[] = [
 ];
 
 const labels: Record<FieldStatus, string> = { verified:"Available", confirm:"Action required", missing:"Missing" };
+const nextActions: Record<FieldStatus, string> = { verified:"No action", confirm:"Review or attest", missing:"Request or obtain" };
+const confidenceLabels: Record<FieldStatus, string> = { verified:"Exact match", confirm:"Manual verification", missing:"No match" };
 
 const westVirginiaCrossCheck: Packet = {
   id: "WV-MD-INITIAL", state: "West Virginia", board: "Board of Medicine", type: "Initial physician license", provider: "Provider D", due: "Sep 18", sections: [
@@ -81,7 +83,9 @@ const westVirginiaCrossCheck: Packet = {
 const applicationPackets = [westVirginiaCrossCheck, ...packets.slice(1)];
 
 export default function ApplicationStudio() {
-  const [view, setView] = useState<StudioView>("crosscheck");
+  const [view, setView] = useState<StudioView>("queue");
+  const [packetMode, setPacketMode] = useState<"compare"|"answers">("compare");
+  const [selectedRequirement, setSelectedRequirement] = useState("");
   const [packetId, setPacketId] = useState(applicationPackets[0].id);
   const [sectionName, setSectionName] = useState(applicationPackets[0].sections[0].name);
   const [values, setValues] = useState<Record<string,string>>({});
@@ -111,6 +115,7 @@ export default function ApplicationStudio() {
   const complete = allFields.filter(f => f.status === "verified").length;
   const percent = Math.round((complete / allFields.length) * 100);
   const issues = allFields.filter(f => f.status !== "verified").length;
+  const selectedField = allFields.find(f => f.id === selectedRequirement) ?? allFields.find(f => f.status !== "verified") ?? allFields[0];
 
   const selectPacket = (id:string) => {
     const next = applicationPackets.find(p => p.id === id)!;
@@ -166,7 +171,17 @@ export default function ApplicationStudio() {
         <a href="https://www.fsmb.org/siteassets/ua/states/049/instructions.pdf" target="_blank" rel="noreferrer">Open board instructions ↗</a>
       </div>}
 
-      {filteredPackets.length === 0 ? <div className="filter-empty"><strong>No packets match these filters</strong><p>Clear one or more filters to return to the application queue.</p><button type="button" onClick={clearFilters}>Clear all filters</button></div> : <div className="studio-workbench">
+      {filteredPackets.length === 0 ? <div className="filter-empty"><strong>No packets match these filters</strong><p>Clear one or more filters to return to the application queue.</p><button type="button" onClick={clearFilters}>Clear all filters</button></div> : <>
+        <div className="packet-health">
+          <div className="provider-identity"><span>{packet.provider.slice(-1)}</span><div><small>Authorized packet view</small><strong>{packet.provider} · Physician (MD)</strong><p>Internal medicine · 6 active licenses · profile reviewed Aug 6</p></div><em>Restricted data masked</em></div>
+          <div className="health-counts"><span><b>{allFields.length}</b>Total</span><span className="available"><b>{complete}</b>Available</span><span className="attention"><b>{allFields.filter(f=>f.status==="confirm").length}</b>Actions</span><span className="missing"><b>{allFields.filter(f=>f.status==="missing").length}</b>Missing</span><span className="freshness"><b>1</b>Expiring</span><small>Requirements reviewed Aug 7</small></div>
+        </div>
+        <div className="lifecycle" aria-label="Application lifecycle"><span className="done">Intake</span><span className="active">Collecting</span><span>Provider review</span><span>Licensing review</span><span>Ready to submit</span><span>Submitted</span></div>
+        <div className="packet-mode"><div><button className={packetMode==="compare"?"active":""} onClick={()=>setPacketMode("compare")}>Requirement cross-check</button><button className={packetMode==="answers"?"active":""} onClick={()=>setPacketMode("answers")}>Application answers</button></div><button onClick={()=>setToast("Review packet prepared without restricted attachments.")}>Export review packet</button></div>
+        {packetMode === "compare" ? <div className="comparison-layout">
+          <section className="comparison-table"><div className="comparison-head"><span>State requires</span><span>Fountain has</span><span>Result & confidence</span><span>Next action</span></div>{allFields.map(field=><button key={field.id} className={selectedField.id===field.id?"comparison-row selected":"comparison-row"} onClick={()=>setSelectedRequirement(field.id)}><span><strong>{field.label}</strong><small><i className="privacy public">Public requirement</i>{field.sensitive&&<i className="privacy restricted">Restricted</i>}</small></span><span><strong>{field.value||"No approved match"}</strong><small>{field.source}</small></span><span><i className={`match-dot ${field.status}`}/><strong>{labels[field.status]}</strong><small>{confidenceLabels[field.status]}</small></span><span><strong>{nextActions[field.status]}</strong><small>{field.status==="verified"?"Matched automatically":"Owner required"}</small></span></button>)}</section>
+          <aside className="action-drawer"><div className="drawer-top"><div><p className="eyebrow">Exception detail</p><h3>{selectedField.label}</h3></div><span className={`field-state ${selectedField.status}`}>{labels[selectedField.status]}</span></div><div className="drawer-block"><small>Why it is required</small><p>West Virginia lists this item in its initial physician licensure instructions.</p><a href="https://www.fsmb.org/siteassets/ua/states/049/instructions.pdf" target="_blank" rel="noreferrer">Official source ↗</a></div><div className="drawer-block"><small>Fountain currently has</small><strong>{selectedField.value||"No approved information found"}</strong><p>{selectedField.source}</p></div><div className="drawer-grid"><div><small>Confidence</small><strong>{confidenceLabels[selectedField.status]}</strong></div><div><small>Data class</small><strong>{selectedField.sensitive?"Restricted":"Internal"}</strong></div><div><small>Owner</small><strong>{selectedField.status==="confirm"?"Provider":"Licensing Ops"}</strong></div><div><small>Due</small><strong>Aug 15</strong></div></div><div className="drawer-actions"><button onClick={()=>setToast(`${selectedField.label} assigned for follow-up.`)}>Assign request</button><button onClick={()=>setToast(`${selectedField.label} escalated to Compliance.`)}>Escalate</button></div><p className="drawer-note">Attestations, payments, signatures, and submissions always remain human-controlled.</p></aside>
+        </div> : <div className="studio-workbench">
         <aside className="packet-rail">
           <div className="packet-id"><small>Packet</small><strong>{packet.id}</strong><span>{packet.board}</span></div>
           <div className="completion"><div><strong>{percent}%</strong><small>review ready</small></div><span><i style={{width:`${percent}%`}} /></span></div>
@@ -200,6 +215,7 @@ export default function ApplicationStudio() {
           <button onClick={()=>setToast("Review worksheet prepared. No sensitive attachments were included.")}>Prepare review worksheet</button>
         </aside>
       </div>}
+      </>}
       </> : <StudioOperations view={view} notify={setToast} />}
     </section>
   );

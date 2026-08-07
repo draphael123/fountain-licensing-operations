@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 
-export type StudioView = "crosscheck" | "intake" | "readiness" | "vault" | "requests" | "audit";
+export type StudioView = "queue" | "crosscheck" | "intake" | "readiness" | "vault" | "requests" | "audit";
 
 const tabs: { id: StudioView; label: string; count?: string }[] = [
+  { id:"queue", label:"Work queue", count:"9" },
   { id:"crosscheck", label:"Cross-check", count:"3" },
   { id:"intake", label:"New application" },
   { id:"readiness", label:"Readiness matrix" },
@@ -46,6 +47,18 @@ export default function StudioOperations({ view, notify }: { view: Exclude<Studi
   const [state, setState] = useState("West Virginia");
   const [pathway, setPathway] = useState("Direct initial licensure");
   const [requestStates, setRequestStates] = useState(["Open","Waiting","Open","Received","Open"]);
+
+  if (view === "queue") return <section className="module-page queue-page">
+    <ModuleHeader eyebrow="Operations home" title="What is stopping submission?" copy="Work the highest-impact exceptions first, then move complete packets into licensing review." />
+    <div className="queue-metrics"><button><b>2</b><span>Ready for review</span><small>Move forward today</small></button><button><b>3</b><span>Waiting on provider</span><small>Oldest: 4 days</small></button><button><b>3</b><span>Missing external item</span><small>NPDB, prints, AMA</small></button><button><b>1</b><span>Source needs review</span><small>Potentially outdated</small></button></div>
+    <div className="queue-layout"><div className="exception-board"><div className="board-head"><div><p className="eyebrow">Prioritized exceptions</p><h3>Next actions</h3></div><select aria-label="Filter exception owner"><option>All owners</option><option>Provider</option><option>Licensing Ops</option><option>Compliance</option></select></div>{[
+      ["High","WV","Activity chronology gap","Provider D","Provider","Due Aug 12"],
+      ["High","WV","Fingerprint check not started","Provider D","Provider","Due Aug 20"],
+      ["High","HI","Renewal attestations incomplete","Provider F","Provider","Due Aug 14"],
+      ["Medium","WV","AMA profile delivery unconfirmed","Provider D","Licensing Ops","Waiting"],
+      ["Medium","CO","PDMP attestation needs review","Provider A","Provider","Due Aug 18"],
+    ].map((r,i)=><button className="exception-row" key={r[2]} onClick={()=>notify(`${r[2]} opened in the action drawer.`)}><span className={`queue-priority ${r[0].toLowerCase()}`}>{r[0]}</span><span className="queue-state">{r[1]}</span><div><strong>{r[2]}</strong><p>{r[3]} · {r[4]}</p></div><time>{r[5]}</time><span>→</span></button>)}</div><aside className="source-inbox"><p className="eyebrow">Source-update inbox</p><h3>1 requirement set needs review</h3><div className="source-alert"><span>WV</span><div><strong>Physician instructions</strong><p>Source document is beyond the internal review threshold.</p><small>Official link available · reviewed 2022</small></div></div><button onClick={()=>notify("West Virginia source review assigned to Compliance.")}>Assign source review</button><hr/><h4>Recently confirmed</h4><p>Colorado controlled-substance renewal · Aug 4</p><p>Hawaii physician renewal · Aug 2</p></aside></div>
+  </section>;
 
   if (view === "intake") return <section className="module-page">
     <ModuleHeader eyebrow="Guided intake" title="Start with the right pathway" copy="Select the provider and destination. Applicability rules determine which requirements should be included." />
